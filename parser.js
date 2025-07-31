@@ -80,7 +80,7 @@ function getDiscountPercent(price, oldPrice) {
  * @param  symbol $, € или ₽
  * @returns {currency}
  */
-function convertCurrency(symbol) {
+function retypeCurrency(symbol) {
   switch(symbol) {
     case '₽':
       return 'RUB';
@@ -158,7 +158,7 @@ function parsePage() {
     oldPrice,
     discount: getDiscount(price, oldPrice),
     discountPercent: getDiscountPercent(price, oldPrice),
-    currency: convertCurrency(document.querySelector('.price').firstChild.textContent.trim().slice(0, 1)),
+    currency: retypeCurrency(document.querySelector('.price').firstChild.textContent.trim().slice(0, 1)),
     properties: getProperties(document.querySelector('.properties').children),
     description: document.querySelector('.description').innerHTML.trim(),
     images: getImages(Array.from(document.querySelectorAll('.preview nav button img')), document.querySelector('.preview figure img').src)
@@ -172,7 +172,7 @@ function parsePage() {
       description: element.querySelector('p').textContent,
       image: element.querySelector('img').src,
       price: element.querySelector('b').textContent.slice(1),
-      currency: convertCurrency(element.querySelector('b').textContent.slice(0, 1))
+      currency: retypeCurrency(element.querySelector('b').textContent.slice(0, 1))
     });
   };
 

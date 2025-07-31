@@ -6,7 +6,11 @@
 function getOpengraphDescription(opengrapArr) {
   const opengraph = {};
   for (element of opengrapArr) {
-    opengraph[element.getAttribute('property').split(':')[1]] = element.getAttribute('content');
+    if (element.getAttribute('property') === 'og:title') {
+      opengraph[element.getAttribute('property').split(':')[1]] = element.getAttribute('content').split('—')[0].trim();
+    } else {
+      opengraph[element.getAttribute('property').split(':')[1]] = element.getAttribute('content');
+    }
   };
   return opengraph;
 }
@@ -72,6 +76,22 @@ function getDiscountPercent(price, oldPrice) {
 }
 
 /**
+ * Функция преобразования валюты
+ * @param  symbol $, € или ₽
+ * @returns {currency}
+ */
+function convertCurrency(symbol) {
+  switch(symbol) {
+    case '₽':
+      return 'RUB';
+    case '$':
+      return 'USD';
+    case '€':
+      return 'EUR';
+  }
+}
+
+/**
  * Функция для создания объекта со свойствами товара
  * @param propertiesArr массив HTML элементов (<li> c двумя <span>)
  * @returns {properties}
@@ -119,14 +139,15 @@ function parsePage() {
   const meta = {
     title: document.querySelector('title').textContent.split('—')[0].trim(),
     description: document.querySelector('[name=description]').content,
-    keywords: document.querySelector('[name=keywords]').content.split(','),
+    keywords: document.querySelector('[name=keywords]').content.split(', '),
     opengraph: getOpengraphDescription(document.querySelectorAll('meta[property]')),
     language: document.querySelector('html').lang
-  }
+  };
 
   // Выносим константы для подсчета скидки в product
   const price = +document.querySelector('.price').firstChild.textContent.trim().slice(1); // Получаем цену (firstChild), удаляем формат валюты
   const oldPrice = +document.querySelector('.price').firstElementChild.textContent.trim().slice(1); // Получаем цену (firstElementChild), удаляем формат валюты
+  
   // Данные карточки товара
   const product = {
     id: document.querySelector('.product').dataset.id,
@@ -137,19 +158,47 @@ function parsePage() {
     oldPrice,
     discount: getDiscount(price, oldPrice),
     discountPercent: getDiscountPercent(price, oldPrice),
-    currency: document.querySelector('.price').firstChild.textContent.trim().slice(0, 1),
+    currency: convertCurrency(document.querySelector('.price').firstChild.textContent.trim().slice(0, 1)),
     properties: getProperties(document.querySelector('.properties').children),
     description: document.querySelector('.description').innerHTML.trim(),
     images: getImages(Array.from(document.querySelectorAll('.preview nav button img')), document.querySelector('.preview figure img').src)
-  }
-  console.log(product)
+  };
 
-    return {
-        meta,
-        product,
-        suggested: [],
-        reviews: []
-    };
+  // Массив дополнительных товаров
+  const suggested = [];
+  for (element of document.querySelector('.suggested .items').children) {
+    suggested.push({
+      name: element.querySelector('h3').textContent,
+      description: element.querySelector('p').textContent,
+      image: element.querySelector('img').src,
+      price: element.querySelector('b').textContent.slice(1),
+      currency: convertCurrency(element.querySelector('b').textContent.slice(0, 1))
+    });
+  };
+
+  // Массив обзоров
+  const reviews = [];
+  for (element of document.querySelector('.reviews .items').children) {
+    reviews.push({
+      rating: element.querySelectorAll('.rating .filled').length,
+      author: {
+        avatar: element.querySelector('.author img').src,
+        name: element.querySelector('.author span').textContent
+      },
+      title: element.querySelector('h3.title').textContent,
+      description: element.querySelector('div p').textContent,
+      date: element.querySelector('.author i').textContent.replaceAll('/', '.')
+      // В формате полной даты
+      // date: new Date(element.querySelector('.author i').textContent.split('/').reverse())
+    });
+  };
+
+  return {
+    meta,
+    product,
+    suggested,
+    reviews
+  };
 }
 
 window.parsePage = parsePage;
